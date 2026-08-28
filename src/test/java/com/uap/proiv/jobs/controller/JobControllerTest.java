@@ -43,6 +43,12 @@ class JobControllerTest {
     @InjectMocks
     private JobController jobController;
 
+    @InjectMocks
+    private UserController userController;
+
+    @InjectMocks
+    private AssignController assignController;
+
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private UserApiResponse userResponse;
@@ -50,7 +56,7 @@ class JobControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(jobController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(jobController, userController, assignController).build();
         objectMapper = new ObjectMapper();
 
         User user = new User();
@@ -75,20 +81,20 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/job/users/1 responde 200, 5xx y 200 en llamadas secuenciales")
+    @DisplayName("GET /api/user/1 responde 200, 5xx y 200 en llamadas secuenciales")
     void getAllUsersPageOneSequentialResponses() throws Exception {
         when(userService.search(1)).thenReturn(userResponse).thenThrow(new RuntimeException("boom")).thenReturn(userResponse);
 
-        mockMvc.perform(get("/api/job/users/1"))
+        mockMvc.perform(get("/api/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1))
                 .andExpect(jsonPath("$.data.length()").value(1));
 
-        mockMvc.perform(get("/api/job/users/1"))
+        mockMvc.perform(get("/api/user/1"))
                 .andExpect(status().is5xxServerError())
                 .andExpect(jsonPath("$").value("boom"));
 
-        mockMvc.perform(get("/api/job/users/1"))
+        mockMvc.perform(get("/api/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total_pages").value(1));
 
@@ -96,11 +102,11 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/job/users/2 devuelve 5xx y el mensaje de error")
+    @DisplayName("GET /api/user/2 devuelve 5xx y el mensaje de error")
     void getAllUsersPageTwoErrorResponse() throws Exception {
         when(userService.search(2)).thenThrow(new RuntimeException("fail"));
 
-        mockMvc.perform(get("/api/job/users/2"))
+        mockMvc.perform(get("/api/user/2"))
                 .andExpect(status().is5xxServerError())
                 .andExpect(jsonPath("$").value("fail"));
 
@@ -108,7 +114,7 @@ class JobControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/job/assign devuelve la asignación")
+    @DisplayName("POST /api/assign devuelve la asignación")
     void assignReturnsControllerContract() throws Exception {
         when(userJobAssignedService.assign()).thenReturn(assignments);
 
@@ -116,7 +122,7 @@ class JobControllerTest {
         request.setRequestNumber(123);
         request.setClientName("ACME");
 
-        mockMvc.perform(post("/api/job/assign")
+        mockMvc.perform(post("/api/assign")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
